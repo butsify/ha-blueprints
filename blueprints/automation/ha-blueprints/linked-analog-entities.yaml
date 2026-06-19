@@ -48,12 +48,12 @@ blueprint:
         Conversion factor from A to B.
         A -> B uses target = source * multiplier.
         B -> A uses target = source / multiplier.
-      default: 1
+      default: 1.0
       selector:
         number:
           min: -1000000
           max: 1000000
-          step: 0.000001
+          step: 0.001
           mode: box
     clamp_to_target_range:
       name: Clamp To Target Range
