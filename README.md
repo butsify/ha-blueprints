@@ -37,7 +37,7 @@ Simple Home Assistant automation blueprints for practical use cases.
 1. Create automation from `Linked Analog Entities (Simple)`.
 2. Select `Entity A` and `Entity B`.
 3. Set `Tolerance` (default `0`).
-4. Set `Multiplier A to B`.
+4. Set `Multiplier A to B` as a decimal text value (for example `0.001`).
 5. Keep `Clamp To Target Range` enabled (recommended).
 6. Save and test by changing values on either side.
 
