@@ -7,8 +7,12 @@ Simple Home Assistant automation blueprints for practical use cases.
 - `Linked Analog Entities (Simple)`
   - File: `blueprints/automation/ha-blueprints/linked-analog-entities.yaml`
   - Links two selected entities and mirrors numeric values both directions.
+  - Triggers on state changes only.
   - Supported selectable domains: `sensor`, `number`, `input_number`.
   - Writable targets: `number`, `input_number`.
+  - Bidirectional conversion with one multiplier.
+    - A -> B uses target = source * multiplier.
+    - B -> A uses target = source / multiplier.
   - Optional auto-clamp to target min/max to avoid out_of_range errors.
   - No debounce logic.
 
@@ -33,8 +37,9 @@ Simple Home Assistant automation blueprints for practical use cases.
 1. Create automation from `Linked Analog Entities (Simple)`.
 2. Select `Entity A` and `Entity B`.
 3. Set `Tolerance` (default `0`).
-4. Keep `Clamp To Target Range` enabled (recommended).
-5. Save and test by changing values on either side.
+4. Set `Multiplier A to B`.
+5. Keep `Clamp To Target Range` enabled (recommended).
+6. Save and test by changing values on either side.
 
 ## Notes
 

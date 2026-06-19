@@ -2,8 +2,10 @@ blueprint:
   name: Linked Analog Entities (Simple)
   description: >-
     Keep two analog entities in sync.
+    Triggering is based on state changes only.
     Supports sensor, number, and input_number as selectable entities.
     Writes are only sent to writable targets (number/input_number).
+    Supports bidirectional conversion using one multiplier.
     No debounce logic.
   domain: automation
   author: ha-blueprints
@@ -40,6 +42,19 @@ blueprint:
           max: 100
           step: 0.001
           mode: box
+    multiplier_a_to_b:
+      name: Multiplier A to B
+      description: >-
+        Conversion factor from A to B.
+        A -> B uses target = source * multiplier.
+        B -> A uses target = source / multiplier.
+      default: 1
+      selector:
+        number:
+          min: -1000000
+          max: 1000000
+          step: 0.000001
+          mode: box
     clamp_to_target_range:
       name: Clamp To Target Range
       description: >-
@@ -56,6 +71,7 @@ variables:
   a_entity: !input entity_a
   b_entity: !input entity_b
   tolerance: !input tolerance
+  multiplier_a_to_b: !input multiplier_a_to_b
   clamp_to_target_range: !input clamp_to_target_range
 
 trigger:
@@ -70,21 +86,33 @@ action:
   - variables:
       source_entity: "{{ trigger.entity_id }}"
       target_entity: "{{ b_entity if trigger.entity_id == a_entity else a_entity }}"
+      is_from_a: "{{ trigger.entity_id == a_entity }}"
       source_value: "{{ states(source_entity) | float(default=none) }}"
       target_value: "{{ states(target_entity) | float(default=none) }}"
       tolerance_value: "{{ tolerance | float(default=0) }}"
+      multiplier_value: "{{ multiplier_a_to_b | float(default=1) }}"
+      raw_target_value: >-
+        {% if source_value is none %}
+          {{ none }}
+        {% elif is_from_a %}
+          {{ source_value * multiplier_value }}
+        {% elif multiplier_value != 0 %}
+          {{ source_value / multiplier_value }}
+        {% else %}
+          {{ none }}
+        {% endif %}
       target_min: "{{ state_attr(target_entity, 'min') | float(default=none) }}"
       target_max: "{{ state_attr(target_entity, 'max') | float(default=none) }}"
       target_is_writable: >-
         {{ target_entity.startswith('number.') or target_entity.startswith('input_number.') }}
-      source_in_range: >-
+      raw_target_in_range: >-
         {{
-          source_value is not none
-          and (target_min is none or source_value >= target_min)
-          and (target_max is none or source_value <= target_max)
+          raw_target_value is not none
+          and (target_min is none or raw_target_value >= target_min)
+          and (target_max is none or raw_target_value <= target_max)
         }}
       effective_value: >-
-        {% set v = source_value %}
+        {% set v = raw_target_value %}
         {% if v is none %}
           {{ none }}
         {% else %}
@@ -100,7 +128,7 @@ action:
         {{
           target_is_writable
           and effective_value is not none
-          and (clamp_to_target_range or source_in_range)
+          and (clamp_to_target_range or raw_target_in_range)
           and (target_value is none or (effective_value - target_value) | abs > tolerance_value)
         }}
   - choose:
