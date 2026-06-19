@@ -1,0 +1,87 @@
+blueprint:
+  name: Linked Analog Entities (Simple)
+  description: >-
+    Keep two analog entities in sync.
+    Supports sensor, number, and input_number as selectable entities.
+    Writes are only sent to writable targets (number/input_number).
+    No debounce logic.
+  domain: automation
+  author: ha-blueprints
+  input:
+    entity_a:
+      name: Entity A
+      description: First entity to link.
+      selector:
+        entity:
+          filter:
+            domain:
+              - sensor
+              - number
+              - input_number
+    entity_b:
+      name: Entity B
+      description: Second entity to link.
+      selector:
+        entity:
+          filter:
+            domain:
+              - sensor
+              - number
+              - input_number
+    tolerance:
+      name: Tolerance
+      description: >-
+        Minimum numeric difference required before writing.
+        Use 0 for exact mirroring.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 0.001
+          mode: box
+
+mode: single
+max_exceeded: silent
+
+variables:
+  a_entity: !input entity_a
+  b_entity: !input entity_b
+  tolerance: !input tolerance
+
+trigger:
+  - platform: state
+    id: from_a
+    entity_id: !input entity_a
+  - platform: state
+    id: from_b
+    entity_id: !input entity_b
+
+action:
+  - variables:
+      source_entity: "{{ trigger.entity_id }}"
+      target_entity: "{{ b_entity if trigger.entity_id == a_entity else a_entity }}"
+      source_value: "{{ states(source_entity) | float(default=none) }}"
+      target_value: "{{ states(target_entity) | float(default=none) }}"
+      target_is_writable: >-
+        {{ target_entity.startswith('number.') or target_entity.startswith('input_number.') }}
+      should_write: >-
+        {{
+          target_is_writable
+          and source_value is not none
+          and (target_value is none or (source_value - target_value) | abs > tolerance)
+        }}
+  - if:
+      - condition: template
+        value_template: "{{ should_write }}"
+    then:
+      - service: >-
+          {% if target_entity.startswith('input_number.') %}
+            input_number.set_value
+          {% else %}
+            number.set_value
+          {% endif %}
+        target:
+          entity_id: "{{ target_entity }}"
+        data:
+          value: "{{ source_value }}"
