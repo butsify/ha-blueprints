@@ -63,25 +63,31 @@ action:
       target_entity: "{{ b_entity if trigger.entity_id == a_entity else a_entity }}"
       source_value: "{{ states(source_entity) | float(default=none) }}"
       target_value: "{{ states(target_entity) | float(default=none) }}"
+      tolerance_value: "{{ tolerance | float(default=0) }}"
       target_is_writable: >-
         {{ target_entity.startswith('number.') or target_entity.startswith('input_number.') }}
       should_write: >-
         {{
           target_is_writable
           and source_value is not none
-          and (target_value is none or (source_value - target_value) | abs > tolerance)
+          and (target_value is none or (source_value - target_value) | abs > tolerance_value)
         }}
-  - if:
-      - condition: template
-        value_template: "{{ should_write }}"
-    then:
-      - service: >-
-          {% if target_entity.startswith('input_number.') %}
-            input_number.set_value
-          {% else %}
-            number.set_value
-          {% endif %}
-        target:
-          entity_id: "{{ target_entity }}"
-        data:
-          value: "{{ source_value }}"
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ should_write and target_entity.startswith('input_number.') }}"
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ target_entity }}"
+            data:
+              value: "{{ source_value }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ should_write and target_entity.startswith('number.') }}"
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: "{{ target_entity }}"
+            data:
+              value: "{{ source_value }}"

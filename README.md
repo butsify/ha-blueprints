@@ -16,15 +16,16 @@ Simple Home Assistant automation blueprints for practical use cases.
 - If one side is a `sensor`, it is treated as a source (read-only).
 - The automation writes only to writable entities.
 - `unknown` and `unavailable` values are ignored automatically because non-numeric states are not written.
+- If both selected entities are `sensor`, no write is possible and sync will not occur.
 
 ## Install In Home Assistant
 
 1. Open Home Assistant.
 2. Go to Settings -> Automations & Scenes -> Blueprints.
 3. Import blueprint from URL.
-4. Use this raw URL format:
+4. Use this raw URL:
 
-   `https://raw.githubusercontent.com/<YOUR_GITHUB_USERNAME>/ha-blueprints/main/blueprints/automation/ha-blueprints/linked-analog-entities.yaml`
+  `https://raw.githubusercontent.com/butsify/ha-blueprints/main/blueprints/automation/ha-blueprints/linked-analog-entities.yaml`
 
 ## Create An Automation From The Blueprint
 
