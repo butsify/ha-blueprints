@@ -40,6 +40,14 @@ blueprint:
           max: 100
           step: 0.001
           mode: box
+    clamp_to_target_range:
+      name: Clamp To Target Range
+      description: >-
+        If enabled, values are clamped to target min/max before writing.
+        Prevents out_of_range errors on number/input_number entities.
+      default: true
+      selector:
+        boolean:
 
 mode: single
 max_exceeded: silent
@@ -48,6 +56,7 @@ variables:
   a_entity: !input entity_a
   b_entity: !input entity_b
   tolerance: !input tolerance
+  clamp_to_target_range: !input clamp_to_target_range
 
 trigger:
   - platform: state
@@ -64,13 +73,35 @@ action:
       source_value: "{{ states(source_entity) | float(default=none) }}"
       target_value: "{{ states(target_entity) | float(default=none) }}"
       tolerance_value: "{{ tolerance | float(default=0) }}"
+      target_min: "{{ state_attr(target_entity, 'min') | float(default=none) }}"
+      target_max: "{{ state_attr(target_entity, 'max') | float(default=none) }}"
       target_is_writable: >-
         {{ target_entity.startswith('number.') or target_entity.startswith('input_number.') }}
+      source_in_range: >-
+        {{
+          source_value is not none
+          and (target_min is none or source_value >= target_min)
+          and (target_max is none or source_value <= target_max)
+        }}
+      effective_value: >-
+        {% set v = source_value %}
+        {% if v is none %}
+          {{ none }}
+        {% else %}
+          {% set low = target_min if target_min is not none else v %}
+          {% set high = target_max if target_max is not none else v %}
+          {% if clamp_to_target_range %}
+            {{ [ [v, low] | max, high ] | min }}
+          {% else %}
+            {{ v }}
+          {% endif %}
+        {% endif %}
       should_write: >-
         {{
           target_is_writable
-          and source_value is not none
-          and (target_value is none or (source_value - target_value) | abs > tolerance_value)
+          and effective_value is not none
+          and (clamp_to_target_range or source_in_range)
+          and (target_value is none or (effective_value - target_value) | abs > tolerance_value)
         }}
   - choose:
       - conditions:
@@ -81,7 +112,7 @@ action:
             target:
               entity_id: "{{ target_entity }}"
             data:
-              value: "{{ source_value }}"
+              value: "{{ effective_value }}"
       - conditions:
           - condition: template
             value_template: "{{ should_write and target_entity.startswith('number.') }}"
@@ -90,4 +121,4 @@ action:
             target:
               entity_id: "{{ target_entity }}"
             data:
-              value: "{{ source_value }}"
+              value: "{{ effective_value }}"

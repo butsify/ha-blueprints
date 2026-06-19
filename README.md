@@ -9,6 +9,7 @@ Simple Home Assistant automation blueprints for practical use cases.
   - Links two selected entities and mirrors numeric values both directions.
   - Supported selectable domains: `sensor`, `number`, `input_number`.
   - Writable targets: `number`, `input_number`.
+  - Optional auto-clamp to target min/max to avoid out_of_range errors.
   - No debounce logic.
 
 ## Important Behavior
@@ -32,9 +33,15 @@ Simple Home Assistant automation blueprints for practical use cases.
 1. Create automation from `Linked Analog Entities (Simple)`.
 2. Select `Entity A` and `Entity B`.
 3. Set `Tolerance` (default `0`).
-4. Save and test by changing values on either side.
+4. Keep `Clamp To Target Range` enabled (recommended).
+5. Save and test by changing values on either side.
 
 ## Notes
 
 - For best bidirectional behavior, use `number`/`input_number` on both sides.
 - If one side is `sensor`, sync can only flow toward the writable side.
+
+## Troubleshooting
+
+- If you see `out_of_range` in automation traces, your target `number`/`input_number` limits are lower than the source value.
+- Re-import/update the blueprint in Home Assistant and re-save automations created from it so new logic is applied.
